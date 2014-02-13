@@ -2,6 +2,10 @@
 
 require 'dicom'
 include DICOM
+port = 2020
 
-s = DServer.new
-s.start_scp('C:\pkgs')
+
+dicomServer = DServer.new(port)
+dicomServer.start_scp('C:\pkgs') do |handler|
+	handler.timeout = 100
+	
