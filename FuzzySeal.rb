@@ -27,14 +27,16 @@ class FileHandler
 			   hash = dcm.to_hash
 			   json = hash.to_json
 			   
-               db["dicomCollection"].insert("raw dicom" => dcm)
+			   cereal = Marshal::dump(dcm)
+			   binDat = BSON::Binary.new(cereal)
+			   
+			   db["dicomCollection"].insert("name" => "dicom1", "raw dicom" => binDat)
 			   db["dicomCollection"].find.each { |row| puts row }
 			 
                successful += 1
             rescue
               handle_fail += 1
               all_success = false
-			  puts db.getLastError.err
               messages << [:error, "Saving file failed!"]
             end
           else
