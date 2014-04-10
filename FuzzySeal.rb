@@ -4,6 +4,27 @@ require 'json'
 include DICOM
 include Mongo
 
+class MongoIX
+	def initialize(host, port, db_name, db_table_name)
+		@db = MongoClient.new(host, port).db(db_name)
+		@table = db[db_table_name]
+	end
+	
+	def insert_dcm(dcm)
+		hash = dcm.to_hash
+		json = hash.to_json
+		
+		cereal = Marshal::dump(dcm)
+		binDat = BSON::Binary.new(cereal)
+		
+		@table.insert("name" => "dicom1", "raw" => binDat)
+	end
+	
+	def print()
+		@table.find.each { |row| puts row }
+	end
+end
+
 class FileHandler
 	def self.receive_files(db, objects, transfer_syntaxes)
       all_success = true
@@ -23,17 +44,10 @@ class FileHandler
           DICOM.logger.level = server_level
           if dcm.read?
             begin
-			   puts "adding to mongo"
-			   hash = dcm.to_hash
-			   json = hash.to_json
-			   
-			   cereal = Marshal::dump(dcm)
-			   binDat = BSON::Binary.new(cereal)
-			   
-			   db["dicomCollection"].insert("name" => "dicom1", "raw dicom" => binDat)
-			   db["dicomCollection"].find.each { |row| puts row }
-			 
-               successful += 1
+							puts "adding to mongo"
+							db.insert_dcm(dcm)
+							db.print()
+              successful += 1
             rescue
               handle_fail += 1
               all_success = false
@@ -73,9 +87,7 @@ MONGO_PORT = 27017
 DB_NAME = "dicom"
 DICOM_TABLE_NAME = "dicomCollection"
 
-db = MongoClient.new(MONGO_SERVER, MONGO_PORT).db(DB_NAME)
-dicomTable = db[DICOM_TABLE_NAME]
-dicomTable.remove
+db = MongoIX.new(MONGO_SERVER, MONGO_PORT, DB_NAME, DB_TABLE_NAME)
 
 SCP_PORT = 10000
 dicomServer = DServer.new(SCP_PORT)
