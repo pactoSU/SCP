@@ -11,14 +11,8 @@ class MongoIX
 		@table = db[db_table_name]
 	end
 	
-	def insert_dcm(dcm)
-		hash = dcm.to_hash
-		json = hash.to_json
-		
-		cereal = Marshal::dump(dcm)
-		binDat = BSON::Binary.new(cereal)
-		
-		@table.insert("name" => "dicom1", "raw" => binDat)
+	def insert_dicom(dcm)
+		@table.insert("name" => "dicom2", "raw" => BSON::Binary.new(dcm))
 	end
 	
 	def print()
@@ -26,6 +20,7 @@ class MongoIX
 	end
 end
 
+=begin
 class FileHandler
 	def self.receive_files(db, objects, transfer_syntaxes)
       all_success = true
@@ -82,18 +77,19 @@ class FileHandler
       return all_success, messages
     end
 end
+=end
 
 MONGO_SERVER = "localhost"
 MONGO_PORT = 27017
 DB_NAME = "dicom"
 DICOM_TABLE_NAME = "dicomCollection"
 
-db = MongoIX.new(MONGO_SERVER, MONGO_PORT, DB_NAME, DB_TABLE_NAME)
+db = MongoIX.new(MONGO_SERVER, MONGO_PORT, DB_NAME, DICOM_TABLE_NAME)
 
 class Stream
 	def write(binary)
-		dicomTable.insert("name" => "dicom1", "dcm" => BSON::Binary.new(binary))
-		dicomTable.each {|row| puts row}
+		db.insert_dicom(binary)
+		db.print()
 	end
 end
 
