@@ -8,12 +8,12 @@ include Mongo
 MONGO_SERVER = "localhost"
 MONGO_PORT = 27017
 DB_NAME = "dicom"
-DICOM_TABLE_NAME = "dicomCollection"
+DICOM_TABLE_NAME = "dicomFileTable"
 
 
 class FileHandler
 	def self.save_file(grid, dcm, transfer_syntax)
-      dcm.write(grid, :transfer_syntax => transfer_syntax)
+      dcm.write(grid,dcm, :transfer_syntax => transfer_syntax)
       message = [:info, "DICOM file saved to gridfs"]
       return message
     end
@@ -73,7 +73,7 @@ class FileHandler
 end
 
 class Parent
-	def write_elements(options={})
+	def write_elements(dcm, options={})
 	  @file = options[:grid]
       # Go ahead and write if the file was opened successfully:
       if @file
@@ -97,7 +97,7 @@ class Parent
         write_signature if options[:signature]
         write_data_elements(children)
 		
-		@stream.write()
+		@stream.write(dcm)
         # Mark this write session as successful:
         @write_success = true
       end
@@ -149,17 +149,22 @@ class Parent
 end
 
 class Stream
-	def write()
-      @file.put(@string, :filename => "A dicom file") #@file is now a gridfs object
+	def write(dcm)
+	patient = dcm.value("0010,0010")
+	modality = dcm.value("0008,0060")
+	physician = dcm.value("0080,0090")
+	studyId = dcm.value("0020,0010")
+	
+      @file.put(@string, :filename => "A dicom file", :patient => patient, :modality => modality, :physician => physician, :studyId => studyId) #@file is now a gridfs object
     end
 end
 
 class DObject
-	def write(grid, options={})
+	def write(grid, dcm, options={})
       #raise ArgumentError, "Invalid file_name. Expected String, got #{file_name.class}." unless file_name.is_a?(String)
       @include_empty_parents = options[:include_empty_parents]
       insert_missing_meta unless options[:ignore_meta]
-      write_elements(:grid => grid, :signature => true, :syntax => transfer_syntax)
+      write_elements(dcm, :grid => grid, :signature => true, :syntax => transfer_syntax)
     end
 end
 
